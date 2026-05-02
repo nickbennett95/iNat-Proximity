@@ -1,0 +1,307 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>iNaturalist Proximity Finder</title>
+<style>
+  :root { --bg:#081c15;--bg2:#1b4332;--g1:#2d6a4f;--g2:#40916c;--g3:#52b788;--g4:#74c69d;--g5:#95d5b2;--g7:#d8f3dc;--text:#d8f3dc;--muted:#74c69d;--mono:'Courier New',monospace; }
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{background:linear-gradient(160deg,var(--bg) 0%,var(--bg2) 55%,var(--g1) 100%);min-height:100vh;font-family:Georgia,serif;color:var(--text);padding:40px 16px 80px;display:flex;flex-direction:column;align-items:center}
+  h1{font-size:28px;font-weight:normal;color:var(--g7);margin-bottom:8px;text-align:center}
+  .sub{color:var(--muted);font-size:14px;text-align:center;font-family:var(--mono);margin-bottom:32px;line-height:1.5}
+  .card{width:100%;max-width:560px;background:rgba(255,255,255,.05);border:1px solid rgba(180,230,200,.15);border-radius:12px;padding:20px;margin-bottom:16px}
+  label{display:block;font-family:var(--mono);font-size:11px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:var(--g5);margin-bottom:8px}
+  .row{display:flex;gap:8px}
+  input{flex:1;padding:10px 12px;border-radius:8px;border:1px solid rgba(180,230,200,.2);background:rgba(255,255,255,.07);color:var(--text);font-family:var(--mono);font-size:14px;outline:none}
+  input::placeholder{color:rgba(180,230,200,.35)}
+  button{padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--g1),var(--g3));color:#fff;font-family:var(--mono);font-size:13px;font-weight:bold;cursor:pointer}
+  button:disabled{opacity:.4;cursor:not-allowed}
+  #log{width:100%;max-width:560px;background:rgba(0,0,0,.35);border-radius:10px;margin-bottom:14px;font-family:var(--mono);font-size:12px;color:var(--g4);line-height:2;display:none}
+  #log-header{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;cursor:pointer;user-select:none}
+  #log-header:hover{background:rgba(255,255,255,.04);border-radius:10px}
+  #log-title{font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:var(--g3)}
+  #log-toggle{font-size:16px;color:var(--g3);line-height:1}
+  #log-progress{font-size:12px;color:var(--g4);padding:0 16px 8px;font-family:var(--mono)}
+  #log-body{padding:0 16px 12px;display:none}
+  #log-body.open{display:block}
+  #log .e::before{content:'> ';color:var(--g1)}
+  .input-wrap{position:relative;flex:1;display:flex}
+  .input-wrap input{flex:1;padding-right:28px}
+  .clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(180,230,200,.4);font-size:16px;cursor:pointer;padding:0;line-height:1;display:none}
+  .clear-btn:hover{color:var(--g4)}
+  #err{width:100%;max-width:560px;background:rgba(255,80,80,.1);border:1px solid rgba(255,120,120,.25);border-radius:10px;padding:12px 16px;color:#ffb4b4;font-family:var(--mono);font-size:13px;margin-bottom:14px;display:none}
+  #base{width:100%;max-width:560px;background:rgba(255,255,255,.05);border:1px solid rgba(180,230,200,.2);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:none}
+  .blabel{font-family:var(--mono);font-size:10px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;color:var(--g3)}
+  .bname{font-style:italic;font-size:22px;color:var(--g7);margin-top:4px}
+  .bcommon{color:var(--g5);font-size:14px;margin-top:2px;font-family:var(--mono)}
+  .bmeta{color:var(--muted);font-size:12px;margin-top:6px;font-family:var(--mono)}
+  .warn{margin-top:8px;padding:6px 10px;background:rgba(255,211,102,.12);border:1px solid rgba(255,211,102,.35);border-radius:6px;font-family:var(--mono);font-size:11px;color:#ffd166}
+  #rlabel{width:100%;max-width:560px;font-family:var(--mono);font-size:10px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:none}
+  #results{width:100%;max-width:560px}
+  .rrow{display:grid;grid-template-columns:88px 1fr;margin-bottom:10px;border-radius:12px;overflow:hidden;box-shadow:0 2px 14px rgba(0,0,0,.2)}
+  .rcol{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:10px 4px}
+  .rlabel{font-family:var(--mono);font-size:9px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:rgba(255,255,255,.6)}
+  .rdist{font-family:var(--mono);font-weight:bold;color:#fff;line-height:1.1;margin-top:3px;text-align:center}
+  .runit{font-family:var(--mono);font-size:10px;color:rgba(255,255,255,.5)}
+  .icol{background:#f0faf4;padding:12px 14px;color:#1b4332}
+  .iname{font-style:italic;font-weight:bold;font-size:15px;line-height:1.2}
+  .icommon{color:#2d6a4f;font-size:12px;margin-top:2px;font-family:var(--mono)}
+  .imeta{color:#888;font-size:11px;margin-top:5px;font-family:var(--mono);line-height:1.6}
+  .barbg{background:#d8f3dc;border-radius:3px;height:4px;margin-top:6px;position:relative;overflow:hidden}
+  .bar{height:100%;position:absolute;top:0;left:0}
+  .vlink{display:inline-block;margin-top:6px;font-size:11px;color:#40916c;text-decoration:none;border:1px solid #40916c;border-radius:4px;padding:2px 8px;font-family:var(--mono);float:right}
+  .vlink:hover{background:#40916c;color:#fff}
+  #foot{width:100%;max-width:560px;font-family:var(--mono);font-size:10px;color:var(--g1);margin-top:10px;display:none}
+  .flag{display:inline-block;font-family:var(--mono);font-size:10px;font-weight:bold;padding:1px 5px;border-radius:3px;margin-right:3px}
+  .fb{background:#fff3cd;color:#856404}
+  .fr{background:#fde8cc;color:#7a3e00}
+</style>
+</head>
+<body>
+<h1>&#127807; iNaturalist Proximity Finder</h1>
+<p class="sub">Find the nearest observation at each taxonomic rank<br>given an iNaturalist observation ID or URL.</p>
+<div class="card">
+  <label>Observation ID or URL</label>
+  <div class="row">
+    <div class="input-wrap"><input id="inp" placeholder="e.g. 199800000" oninput="onInput()" /><button class="clear-btn" id="clear-btn" onclick="clearInput()">&#10005;</button></div>
+    <button id="btn" onclick="go()">Search</button>
+  </div>
+</div>
+<div id="log"><div id="log-header" onclick="toggleLog()"><span id="log-title">Log</span><span id="log-toggle">&#9658;</span></div><div id="log-progress"></div><div id="log-body"></div></div>
+<div id="err"></div>
+<div id="base"></div>
+<div id="rlabel">Nearest observation by rank</div>
+<div id="results"></div>
+<div id="foot">Haversine distances &middot; research-grade + needs-ID &middot; &#9888; obscured = coords offset up to ~28 km</div>
+
+<script>
+const API='https://api.inaturalist.org/v1';
+const RANKS=['species','genus','family','order','class','phylum'];
+const COLORS={species:'#1a472a',genus:'#2d6a4f',family:'#40916c',order:'#52b788',class:'#74c69d',phylum:'#95d5b2'};
+const OBS_KM=28, TMAX=30, RMAX=5000;
+let busy=false;
+
+function lg(m){
+  const log=document.getElementById('log');
+  log.style.display='block';
+  const body=document.getElementById('log-body');
+  const d=document.createElement('div');d.className='e';d.textContent=m;body.appendChild(d);
+  body.scrollTop=body.scrollHeight;
+  // Update progress summary with last top-level message (not indented)
+  if(!m.startsWith('  ')){
+    document.getElementById('log-progress').textContent=m;
+  }
+}
+function toggleLog(){
+  const body=document.getElementById('log-body');
+  const tog=document.getElementById('log-toggle');
+  const open=body.classList.toggle('open');
+  tog.innerHTML=open?'&#9660;':'&#9658;';
+}
+function err(m){const el=document.getElementById('err');el.textContent=m?'\u26a0 '+m:'';el.style.display=m?'block':'none'}
+
+function hav(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,da=r(c-a),db=r(d-b),q=Math.sin(da/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(db/2)**2;return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q))}
+function fkm(k){return k<1?(k*1000).toFixed(0)+' m':k<100?k.toFixed(1)+' km':Math.round(k)+' km'}
+function r1sf(k){// round up to 1 significant figure
+  if(k<=0)return 1;
+  const mag=Math.pow(10,Math.floor(Math.log10(k)));
+  return Math.ceil(k/mag)*mag;
+}
+function dist(k,bo,ro){const e=(bo?OBS_KM:0)+(ro?OBS_KM:0);return{mid:k,lo:Math.max(0,k-e),hi:k+e,e}}
+function rng(d){if(!d.e)return fkm(d.mid);if(!d.lo)return '0\u2013'+fkm(d.hi);return fkm(d.lo)+'\u2013'+fkm(d.hi)}
+function mid(d){const s=fkm(d.mid);return{n:(d.e?'~':'')+s.replace(/[^0-9.]/g,''),u:s.replace(/[0-9.]/g,'').trim()}}
+function obs2(o){return!!(o.obscured||o.geoprivacy==='obscured'||o.taxon_geoprivacy==='obscured')}
+
+async function get(path){const r=await fetch(API+path);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+
+async function getObs(id){
+  const d=await get('/observations/'+id);
+  const o=d.results?.[0];
+  if(!o)throw new Error('Observation not found.');
+  if(!o.location)throw new Error('No location data (may be private).');
+  if(!o.taxon)throw new Error('No taxon identification.');
+  const[lat,lon]=o.location.split(',').map(Number);
+  return{obs:o,lat,lon,ob:obs2(o)};
+}
+
+async function getTax(id){const d=await get('/taxa/'+id);return d.results?.[0]||null}
+
+async function cands(tid,xid,lat,lon,r,baseOb){
+  const d=await get('/observations?taxon_id='+tid+'&lat='+lat+'&lng='+lon+'&radius='+r+'&per_page=50&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
+  const all=(d.results||[]).filter(o=>o.id!==xid&&o.location);
+  const thresh=(baseOb?2:1)*OBS_KM;
+  return r<=thresh?all.filter(o=>!obs2(o)):all;
+}
+
+async function countWithin28(tid,xid,lat,lon,thresh){
+  // Count unobscured obs within uncertainty radius
+  const d=await get('/observations?taxon_id='+tid+'&lat='+lat+'&lng='+lon+'&radius='+thresh+'&per_page=50&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
+  const c=(d.results||[]).filter(o=>o.id!==xid&&o.location&&!obs2(o));
+  return c.length===50?'>50':c.length;
+}
+
+async function nearest(tid,xid,lat,lon,logf,sr,baseOb){
+  // sr: start radius — OBS_KM*(baseOb?2:1) for first rank, r1sf(prev result) for subsequent
+  let r=sr>0?Math.max(0.01,sr):1;
+  let lastNonEmpty=null;
+  let prevR=null;
+  for(let i=0;i<16;i++){
+    if(r===prevR)break;
+    prevR=r;
+    const c=await cands(tid,xid,lat,lon,r,baseOb);
+    logf&&logf('    radius '+(r<1?r.toFixed(2):r<10?r.toFixed(1):Math.round(r))+' km → '+c.length);
+    if(c.length===0){
+      if(r>=RMAX)break;
+      r=Math.min(r*2,RMAX);
+    } else if(c.length>=50){
+      lastNonEmpty=c;
+      r=r/3;
+    } else {
+      return close(c,lat,lon);
+    }
+  }
+  if(lastNonEmpty)return close(lastNonEmpty,lat,lon);
+  // Global fallback - no radius, no obscured filter
+  logf&&logf('    global…');
+  const d=await get('/observations?taxon_id='+tid+'&per_page=200&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
+  const c=(d.results||[]).filter(o=>o.id!==xid&&o.location);
+  return c.length?close(c,lat,lon):null;
+}
+
+function close(cs,lat,lon){
+  let best=null,bd=Infinity;
+  for(const o of cs){const[a,b]=o.location.split(',').map(Number);const d=hav(lat,lon,a,b);if(d<bd){bd=d;best=o;}}
+  return best?{obs:best,distKm:bd}:null;
+}
+
+function showBase(obs,lat,lon,ob){
+  const el=document.getElementById('base');
+  el.style.display='block';
+  el.innerHTML=
+    '<div class="blabel">Base &middot; #'+obs.id+'</div>'+
+    '<div class="bname">'+obs.taxon.name+'</div>'+
+    (obs.taxon.preferred_common_name?'<div class="bcommon">'+obs.taxon.preferred_common_name+'</div>':'')+
+    '<div class="bmeta">&#128205; '+(obs.place_guess||lat.toFixed(4)+','+lon.toFixed(4))+'<br>'+(obs.observed_on||'\u2014')+' &middot; '+obs.taxon.rank+'</div>'+
+    (ob?'<div class="warn">&#9888; Base observation obscured &mdash; true coords offset up to '+OBS_KM+' km. Distances shown as ranges.</div>':'');
+}
+
+function renderRow(rank,rt,result,maxHi,baseOb){
+  const{obs,distKm}=result;
+  const ro=obs2(obs);
+  const d=dist(distKm,baseOb,ro);
+  const{n,u}=mid(d);
+  const color=COLORS[rank]||'#2d6a4f';
+  const pH=Math.min(100,d.hi/maxHi*100);
+  const pL=Math.min(100,d.lo/maxHi*100);
+  let flags='';
+  if(baseOb) flags+='<span class="flag fb" title="Base coords obscured (\xb1'+OBS_KM+'km)">base &#9888;</span>';
+  if(ro)     flags+='<span class="flag fr" title="Result coords obscured (\xb1'+OBS_KM+'km)">result &#9888;</span>';
+  const dl=d.e
+    ?'<div style="font-size:11px;color:#e07b00;margin-top:4px;font-family:\'Courier New\',monospace">distance: '+rng(d)+(flags?' &nbsp;'+flags:'')+'</div>'
+    :'<div style="font-size:11px;color:#555;margin-top:4px;font-family:\'Courier New\',monospace">distance: '+rng(d)+'</div>';
+  const row=document.createElement('div');
+  row.className='rrow';
+  row.innerHTML=
+    '<div class="rcol" style="background:'+color+'">'+
+      '<div class="rlabel">'+rank+'</div>'+
+      '<div class="rdist" style="font-size:'+(d.mid<10?19:15)+'px">'+n+'</div>'+
+      '<div class="runit">'+u+'</div>'+
+    '</div>'+
+    '<div class="icol">'+
+      '<div style="border-bottom:1px solid #c8ecd4;padding-bottom:6px;margin-bottom:6px">'+
+        '<div class="iname">'+rt.name+'</div>'+
+        (rt.common_name?'<div class="icommon">'+rt.common_name+'</div>':'')+
+      '</div>'+
+      '<div style="font-size:10px;color:#888;font-family:\'Courier New\',monospace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">nearest obs</div>'+
+      '<div class="iname" style="font-size:13px">'+(obs.taxon?obs.taxon.name:'Unknown')+'</div>'+
+      (obs.taxon&&obs.taxon.preferred_common_name?'<div class="icommon">'+obs.taxon.preferred_common_name+'</div>':'')+
+      '<div class="imeta">&#128205; '+(obs.place_guess||'Unknown')+'<br>'+(obs.observed_on||'\u2014')+'</div>'+
+      dl+
+      '<div class="barbg">'+
+        '<div class="bar" style="width:'+pH+'%;background:'+color+';opacity:.25"></div>'+
+        '<div class="bar" style="width:'+pL+'%;background:'+color+'"></div>'+
+      '</div>'+
+      '<a class="vlink" href="https://www.inaturalist.org/observations/'+obs.id+'" target="_blank">View &#8594;</a>'+
+    '</div>';
+  return row;
+}
+
+async function go(){
+  if(busy)return;
+  const raw=document.getElementById('inp').value.trim();
+  const m=raw.match(/(\d+)\s*$/);
+  if(!m){err('Enter a valid observation ID or iNaturalist URL.');return;}
+  const id=parseInt(m[1],10);
+  busy=true;
+  const btn=document.getElementById('btn');
+  btn.disabled=true;btn.textContent='\u2026';
+  document.getElementById('log-body').innerHTML='';
+  document.getElementById('log-progress').textContent='';
+  document.getElementById('log-toggle').innerHTML='&#9658;';
+  document.getElementById('log-body').classList.remove('open');
+  document.getElementById('log').style.display='none';
+  document.getElementById('results').innerHTML='';
+  document.getElementById('rlabel').style.display='none';
+  document.getElementById('foot').style.display='none';
+  document.getElementById('base').style.display='none';
+  err('');
+
+  try{
+    lg('Fetching observation '+id+'\u2026');
+    const{obs,lat,lon,ob}=await getObs(id);
+    lg((ob?'[obscured] ':'')+obs.taxon.name+' \u00b7 '+(obs.place_guess||lat.toFixed(4)+','+lon.toFixed(4)));
+    showBase(obs,lat,lon,ob);
+
+    lg('Fetching taxonomy\u2026');
+    const tax=await getTax(obs.taxon.id);
+    const anc=(tax?.ancestors||[]).filter(a=>RANKS.includes(a.rank));
+
+    const byR={};
+    if(RANKS.includes(obs.taxon.rank))
+      byR[obs.taxon.rank]={id:obs.taxon.id,rank:obs.taxon.rank,name:obs.taxon.name,common_name:obs.taxon.preferred_common_name||null};
+    for(const a of anc)
+      if(!byR[a.rank])byR[a.rank]={id:a.id,rank:a.rank,name:a.name,common_name:a.preferred_common_name||null};
+
+    const chain=RANKS.filter(r=>byR[r]).map(r=>byR[r]);
+    if(!chain.length)throw new Error('No searchable ranks found.');
+
+    const found={};
+    const thresh=(ob?2:1)*OBS_KM;
+    let nr=thresh; // first rank starts at 28km (or 56km if base obscured)
+    for(const t of chain){
+      lg('Searching '+t.rank+' ('+t.name+')…');
+      try{
+        const cnt=await countWithin28(t.id,obs.id,lat,lon,thresh);
+        if(cnt>0)lg('  ℹ '+cnt+' obs within '+thresh+' km (uncertainty zone)');
+        const res=await nearest(t.id,obs.id,lat,lon,lg,nr,ob);
+        if(res){found[t.rank]={...res,rankTaxon:t};lg('  ✓ '+(res.distKm<1?(res.distKm*1000).toFixed(0)+' m':res.distKm.toFixed(3)+' km')+' — '+(res.obs.taxon?res.obs.taxon.name:'?'));nr=r1sf(res.distKm);}
+        else lg('  – no results');
+      }catch(e){lg('  – error: '+e.message);}
+    }
+
+    const ranks=RANKS.filter(r=>found[r]);
+    if(!ranks.length){err('No observations found for any rank.');return;}
+
+    const maxHi=Math.max(...ranks.map(r=>dist(found[r].distKm,ob,obs2(found[r].obs)).hi),1);
+    const con=document.getElementById('results');
+    for(const r of ranks)con.appendChild(renderRow(r,found[r].rankTaxon,found[r],maxHi,ob));
+    document.getElementById('rlabel').style.display='block';
+    document.getElementById('foot').style.display='block';
+
+  }catch(e){err(e.message);}
+  finally{busy=false;btn.disabled=false;btn.textContent='Search';}
+}
+
+function clearInput(){
+  document.getElementById('inp').value='';
+  document.getElementById('clear-btn').style.display='none';
+  document.getElementById('inp').focus();
+}
+function onInput(){
+  document.getElementById('clear-btn').style.display=document.getElementById('inp').value?'block':'none';
+}
+document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
+</script>
+</body>
+</html>
