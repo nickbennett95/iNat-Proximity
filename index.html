@@ -18,7 +18,7 @@
   button{padding:10px 20px;border-radius:8px;border:none;background:linear-gradient(135deg,var(--g1),var(--g3));color:#fff;font-family:var(--mono);font-size:13px;font-weight:bold;cursor:pointer}
   button:disabled{opacity:.4;cursor:not-allowed}
   #log{width:100%;max-width:560px;background:rgba(0,0,0,.35);border-radius:10px;margin-bottom:14px;font-family:var(--mono);font-size:12px;color:var(--g4);line-height:2;display:none}
-  #log-header{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;cursor:pointer;user-select:none}
+  #log-header{display:flex;justify-content:space-between;align-items:center;padding:8px 16px;user-select:none}
   #log-header:hover{background:rgba(255,255,255,.04);border-radius:10px}
   #log-title{font-size:11px;font-weight:bold;letter-spacing:1px;text-transform:uppercase;color:var(--g3)}
   #log-toggle{font-size:16px;color:var(--g3);line-height:1}
@@ -31,11 +31,11 @@
   .clear-btn{position:absolute;right:8px;top:50%;transform:translateY(-50%);background:none;border:none;color:rgba(180,230,200,.4);font-size:16px;cursor:pointer;padding:0;line-height:1;display:none}
   .clear-btn:hover{color:var(--g4)}
   #err{width:100%;max-width:560px;background:rgba(255,80,80,.1);border:1px solid rgba(255,120,120,.25);border-radius:10px;padding:12px 16px;color:#ffb4b4;font-family:var(--mono);font-size:13px;margin-bottom:14px;display:none}
-  #base{width:100%;max-width:560px;background:rgba(255,255,255,.05);border:1px solid rgba(180,230,200,.2);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:none}
-  .blabel{font-family:var(--mono);font-size:10px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;color:var(--g3)}
-  .bname{font-style:italic;font-size:22px;color:var(--g7);margin-top:4px}
-  .bcommon{color:var(--g5);font-size:14px;margin-top:2px;font-family:var(--mono)}
-  .bmeta{color:var(--muted);font-size:12px;margin-top:6px;font-family:var(--mono)}
+  #search{width:100%;max-width:560px;background:rgba(255,255,255,.05);border:1px solid rgba(180,230,200,.2);border-radius:12px;padding:14px 18px;margin-bottom:20px;display:none}
+  .source-label{font-family:var(--mono);font-size:10px;font-weight:bold;letter-spacing:1.2px;text-transform:uppercase;color:var(--g3)}
+  .source-name{font-style:italic;font-size:22px;color:var(--g7);margin-top:4px}
+  .source-common{color:var(--g5);font-size:14px;margin-top:2px;font-family:var(--mono)}
+  .source-meta{color:var(--muted);font-size:12px;margin-top:6px;font-family:var(--mono)}
   .warn{margin-top:8px;padding:6px 10px;background:rgba(255,211,102,.12);border:1px solid rgba(255,211,102,.35);border-radius:6px;font-family:var(--mono);font-size:11px;color:#ffd166}
   #rlabel{width:100%;max-width:560px;font-family:var(--mono);font-size:10px;font-weight:bold;letter-spacing:1.5px;text-transform:uppercase;color:var(--muted);margin-bottom:10px;display:none}
   #results{width:100%;max-width:560px}
@@ -59,8 +59,8 @@
 </style>
 </head>
 <body>
-<h1>&#127807; iNaturalist Proximity Finder</h1>
-<p class="sub">Find the nearest observation at each taxonomic rank<br>given an iNaturalist observation ID or URL.</p>
+<h1>Proximity Finder for<br><img src="https://upload.wikimedia.org/wikipedia/en/7/76/INaturalist_logo.png" style="height:32px;vertical-align:middle" onerror="this.style.display='none'"> iNaturalist</h1>
+<p class="sub">Search an observation to find the nearest match at each taxonomic rank.</p>
 <div class="card">
   <label>Observation ID or URL</label>
   <div class="row">
@@ -68,9 +68,39 @@
     <button id="btn" onclick="go()">Search</button>
   </div>
 </div>
-<div id="log"><div id="log-header" onclick="toggleLog()"><span id="log-title">Log</span><span id="log-toggle">&#9658;</span></div><div id="log-progress"></div><div id="log-body"></div></div>
+<div class="card" style="margin-top:-8px">
+  <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+    <label style="margin:0">API Token <span style="font-weight:normal;opacity:.7">(optional)</span></label>
+    <button onclick="document.getElementById('token-help').style.display='flex'" style="background:none;border:1px solid var(--g2);border-radius:50%;width:18px;height:18px;padding:0;font-size:11px;color:var(--g3);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center">?</button>
+  </div>
+  <div style="display:flex;gap:8px">
+    <div class="input-wrap" style="flex:1;display:flex"><input id="api-token" type="password" placeholder="Paste your iNaturalist API token here" oninput="onTokenInput()" style="flex:1;padding:8px 32px 8px 12px;border-radius:8px;border:1px solid rgba(180,230,200,.2);background:rgba(255,255,255,.07);color:var(--g7);font-family:var(--mono);font-size:13px;outline:none" /><button class="clear-btn" id="clear-token-btn" onclick="clearToken()" style="display:none">×</button></div>
+    <button onclick="testToken()" style="padding:8px 14px;border-radius:8px;border:none;background:rgba(255,255,255,.08);color:var(--g4);font-family:var(--mono);font-size:12px;cursor:pointer;white-space:nowrap">Test</button>
+  </div>
+  <div id="token-status" style="font-size:11px;margin-top:6px;font-family:var(--mono);min-height:16px"></div>
+  <div style="font-size:11px;color:var(--g2);margin-top:6px;font-family:var(--mono)">Allows access to true coordinates for observations where you have curator trust.</div>
+</div>
+
+<!-- Token help modal -->
+<div id="token-help" style="display:none;position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:100;align-items:center;justify-content:center;padding:20px" onclick="if(event.target===this)this.style.display='none'">
+  <div style="background:#1b4332;border:1px solid var(--g2);border-radius:14px;padding:24px;max-width:480px;width:100%;position:relative;font-family:var(--mono);font-size:13px;color:var(--g6);line-height:1.8">
+    <button onclick="document.getElementById('token-help').style.display='none'" style="position:absolute;top:12px;right:14px;background:none;border:none;color:var(--g3);font-size:20px;cursor:pointer;padding:0;line-height:1">×</button>
+    <div style="font-size:15px;font-weight:bold;color:var(--g7);margin-bottom:14px">Getting your iNaturalist API token</div>
+    <ol style="padding-left:18px;margin:0">
+      <li style="margin-bottom:8px">Log in to <a href="https://www.inaturalist.org" target="_blank" style="color:var(--g4)">inaturalist.org</a> in your browser.</li>
+      <li style="margin-bottom:8px">Go to <a href="https://www.inaturalist.org/users/api_token" target="_blank" style="color:var(--g4)">inaturalist.org/users/api_token</a></li>
+      <li style="margin-bottom:8px">Copy the token shown on that page.</li>
+      <li style="margin-bottom:8px">Paste it into the API Token field.</li>
+    </ol>
+    <div style="margin-top:14px;padding:10px 12px;background:rgba(0,0,0,.3);border-radius:8px;color:var(--g4);font-size:11px">
+      Your token is only used to make requests to iNaturalist and is never stored or sent anywhere else. Tokens expire after 24 hours.
+    </div>
+  </div>
+</div>
+
+<div id="log"><div id="log-header"><span id="log-title" onclick="toggleLog()" style="cursor:pointer">Log <span id="log-toggle">&#9658;</span></span><button onclick="copyLog()" style="background:none;border:1px solid var(--g2);border-radius:4px;color:var(--g3);font-family:var(--mono);font-size:10px;padding:2px 8px;cursor:pointer">copy</button></div><div id="log-progress"></div><div id="log-body"></div></div>
 <div id="err"></div>
-<div id="base"></div>
+<div id="srccard" class="card" style="display:none"></div>
 <div id="rlabel">Nearest observation by rank</div>
 <div id="results"></div>
 <div id="foot">Haversine distances &middot; research-grade + needs-ID &middot; &#9888; obscured = coords offset up to ~28 km</div>
@@ -99,6 +129,16 @@ function toggleLog(){
   const open=body.classList.toggle('open');
   tog.innerHTML=open?'&#9660;':'&#9658;';
 }
+function copyLog(){
+  const lines=[...document.getElementById('log-body').querySelectorAll('.e')].map(e=>e.textContent).join('\n');
+  const ta=document.createElement('textarea');
+  ta.value=lines;
+  ta.style.cssText='position:fixed;top:0;left:0;opacity:0.01;font-size:16px;';
+  document.body.appendChild(ta);
+  ta.focus();ta.setSelectionRange(0,lines.length);
+  try{document.execCommand('copy');}catch(e){}
+  document.body.removeChild(ta);
+}
 function err(m){const el=document.getElementById('err');el.textContent=m?'\u26a0 '+m:'';el.style.display=m?'block':'none'}
 
 function hav(a,b,c,d){const R=6371,r=x=>x*Math.PI/180,da=r(c-a),db=r(d-b),q=Math.sin(da/2)**2+Math.cos(r(a))*Math.cos(r(c))*Math.sin(db/2)**2;return R*2*Math.atan2(Math.sqrt(q),Math.sqrt(1-q))}
@@ -111,9 +151,15 @@ function r1sf(k){// round up to 1 significant figure
 function dist(k,bo,ro){const e=(bo?OBS_KM:0)+(ro?OBS_KM:0);return{mid:k,lo:Math.max(0,k-e),hi:k+e,e}}
 function rng(d){if(!d.e)return fkm(d.mid);if(!d.lo)return '0\u2013'+fkm(d.hi);return fkm(d.lo)+'\u2013'+fkm(d.hi)}
 function mid(d){const s=fkm(d.mid);return{n:(d.e?'~':'')+s.replace(/[^0-9.]/g,''),u:s.replace(/[0-9.]/g,'').trim()}}
-function obs2(o){return!!(o.obscured||o.geoprivacy==='obscured'||o.taxon_geoprivacy==='obscured')}
+function obs2(o){if(o.private_location)return false;return!!(o.obscured||o.geoprivacy==='obscured'||o.taxon_geoprivacy==='obscured')}
 
-async function get(path){const r=await fetch(API+path);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()}
+async function get(path){
+  const tok=document.getElementById('api-token').value.trim();
+  const opts=tok?{headers:{'Authorization':tok}}:{};
+  const r=await fetch(API+path,opts);
+  if(!r.ok)throw new Error('HTTP '+r.status);
+  return r.json();
+}
 
 async function getObs(id){
   const d=await get('/observations/'+id);
@@ -121,131 +167,143 @@ async function getObs(id){
   if(!o)throw new Error('Observation not found.');
   if(!o.location)throw new Error('No location data (may be private).');
   if(!o.taxon)throw new Error('No taxon identification.');
-  const[lat,lon]=o.location.split(',').map(Number);
-  return{obs:o,lat,lon,ob:obs2(o)};
+  const trueLoc=o.private_location||o.location;
+  const trueCoords=trueLoc!==o.location;
+  const[lat,lon]=trueLoc.split(',').map(Number);
+  return{obs:o,lat,lon,ob:obs2(o),trueCoords};
 }
 
 async function getTax(id){const d=await get('/taxa/'+id);return d.results?.[0]||null}
 
 async function cands(tid,xid,lat,lon,r,filterObs){
   const d=await get('/observations?taxon_id='+tid+'&lat='+lat+'&lng='+lon+'&radius='+r+'&per_page=50&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
-  const all=(d.results||[]).filter(o=>o.id!==xid&&o.location);
+  const all=(d.results||[]).filter(o=>o.id!==xid&&(o.private_location||o.location));
   return filterObs?all.filter(o=>!obs2(o)):all;
 }
 
-async function countWithin28(tid,xid,lat,lon,thresh){
-  // Count unobscured obs within uncertainty radius
-  const d=await get('/observations?taxon_id='+tid+'&lat='+lat+'&lng='+lon+'&radius='+thresh+'&per_page=50&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
-  const c=(d.results||[]).filter(o=>o.id!==xid&&o.location&&!obs2(o));
-  return c.length===50?'>50':c.length;
-}
+
 
 async function nearest(tid,xid,lat,lon,logf,sr,baseOb){
   const thresh=(baseOb?2:1)*OBS_KM;
+  const hasToken=!!document.getElementById('api-token').value.trim();
 
-  async function search(filterObs){
-    let lo=0,hi=null,r=sr>0?Math.max(0.01,sr):thresh;
-    let bestBatch=null;
-    for(let i=0;i<20;i++){
-      // Only filter when radius is within the uncertainty zone
-      const doFilter=filterObs&&r<=thresh;
-      const c=await cands(tid,xid,lat,lon,r,doFilter);
-      logf&&logf('    radius '+(r<1?r.toFixed(2):r<10?r.toFixed(1):Math.round(r))+' km → '+c.length+(doFilter?' (filtered)':''));
-      if(c.length===0){
-        lo=r;
-        if(hi!==null)r=(lo+hi)/2;
-        else if(r>=RMAX)break;
-        else r=Math.min(r*2,RMAX);
-      } else if(c.length>=50){
-        hi=r;bestBatch=c;
-        r=(lo+hi)/2;
-      } else {
-        bestBatch=c;break;
-      }
-      if(hi!==null&&(hi-lo)<0.01)break;
-    }
-    if(!bestBatch){
-      logf&&logf('    global…');
-      const d=await get('/observations?taxon_id='+tid+'&per_page=200&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
-      bestBatch=(d.results||[]).filter(o=>o.id!==xid&&o.location);
-    }
-    return bestBatch&&bestBatch.length?close(bestBatch,lat,lon):null;
+  function fmtR(r){return r<1?r.toFixed(2):r<10?r.toFixed(1):''+Math.round(r);}
+
+  async function fetchPage(r,page){
+    const d=await get('/observations?taxon_id='+tid+'&lat='+lat+'&lng='+lon+'&radius='+r+'&per_page=50&page='+page+'&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
+    const raw=(d.results||[]);
+    const valid=raw.filter(o=>o.id!==xid&&(o.private_location||o.location));
+    return{rawCount:raw.length,valid};
   }
 
-  // First probe at thresh radius with filter on
-  const firstProbe=await cands(tid,xid,lat,lon,thresh,true);
-  logf&&logf('    radius '+Math.round(thresh)+' km → '+firstProbe.length+' (filtered)');
-  if(firstProbe.length===0){
-    // All results within thresh are obscured — search without filter
-    logf&&logf('    all obscured within '+thresh+' km, searching without filter…');
-    return search(false);
+  async function fetchAll(r){
+    let all=[],page=1;
+    while(true){
+      const{rawCount,valid}=await fetchPage(r,page);
+      all=all.concat(valid);
+      if(rawCount<50)break;
+      page++;
+    }
+    return all;
   }
-  return search(true);
-}
 
-function close(cs,lat,lon){
-  let best=null,bd=Infinity;
-  for(const o of cs){const[a,b]=o.location.split(',').map(Number);const d=hav(lat,lon,a,b);if(d<bd){bd=d;best=o;}}
-  return best?{obs:best,distKm:bd}:null;
-}async function nearest(tid,xid,lat,lon,logf,sr,baseOb){
-  let lo=0,hi=null,r=sr>0?Math.max(0.01,sr):1;
-  let bestBatch=null;
+  // If token present, paginate at thresh to ensure we don't miss obscured obs with private_location
+  if(hasToken){
+    logf&&logf('    radius '+fmtR(thresh)+' km (paginating, token present)…');
+    const all=await fetchAll(thresh);
+    const clear=all.filter(o=>!obs2(o));
+    const nObsc=all.length-clear.length;
+    logf&&logf('    '+all.length+' results'+(nObsc>0?', '+nObsc+' obscured':''));
+    if(all.length)return close(all,lat,lon);
+    // Nothing within thresh — fall through to binary search without token behaviour
+    logf&&logf('    nothing within '+fmtR(thresh)+' km, expanding…');
+  }
+
+  // Binary search on raw count to find radius with <50 results
+  let lo=0,hi=null,r=sr>0?Math.max(0.01,sr):thresh;
+  let useFilter=true;
+  let filterDecided=false;
+  let convergedR=null;
+
   for(let i=0;i<20;i++){
-    const c=await cands(tid,xid,lat,lon,r);
-    logf&&logf('    radius '+(r<1?r.toFixed(2):r<10?r.toFixed(1):Math.round(r))+' km → '+c.length);
-    if(c.length===0){
+    const{rawCount,valid:batch}=await fetchPage(r,1);
+    const clear=batch.filter(o=>!obs2(o));
+    const nObsc=batch.length-clear.length;
+    logf&&logf('    radius '+fmtR(r)+' km → '+batch.length+' results'+(nObsc>0?', '+nObsc+' obscured':''));
+    if(!filterDecided&&Math.round(r)===Math.round(thresh)){
+      filterDecided=true;
+      useFilter=clear.length>0;
+      if(!useFilter)logf&&logf('    all obscured within '+fmtR(thresh)+' km, using obscured…');
+    }
+    if(rawCount===0){
       lo=r;
       if(hi!==null)r=(lo+hi)/2;
       else if(r>=RMAX)break;
       else r=Math.min(r*2,RMAX);
-    } else if(c.length>=50){
-      hi=r;bestBatch=c;
+    } else if(rawCount>=50){
+      hi=r;
       r=(lo+hi)/2;
     } else {
-      bestBatch=c;break;
+      convergedR=r;break;
     }
-    if(hi!==null&&(hi-lo)<0.01)break;
+    if(hi!==null&&(hi-lo)<0.01){convergedR=hi;break;}
   }
-  if(!bestBatch){
+
+  if(convergedR!==null){
+    const all=await fetchAll(convergedR);
+    const pool=useFilter?all.filter(o=>!obs2(o)):all;
+    if(pool.length)return close(pool,lat,lon);
+    logf&&logf('    all results obscured, expanding…');
+    let er=convergedR;
+    while(er<RMAX){
+      er=Math.min(er*2,RMAX);
+      const exp=await fetchAll(er);
+      const expClear=exp.filter(o=>!obs2(o));
+      logf&&logf('    radius '+fmtR(er)+' km → '+exp.length+' results, '+expClear.length+' unobscured');
+      if(expClear.length)return close(expClear,lat,lon);
+    }
     logf&&logf('    global…');
-    const d=await get('/observations?taxon_id='+tid+'&per_page=200&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
-    bestBatch=(d.results||[]).filter(o=>o.id!==xid&&o.location);
-    if(!bestBatch.length)return null;
+    const gd=await get('/observations?taxon_id='+tid+'&per_page=50&has[]=geo&quality_grade=research,needs_id&order_by=observed_on');
+    const gAll=(gd.results||[]).filter(o=>o.id!==xid&&(o.private_location||o.location));
+    const gClear=gAll.filter(o=>!obs2(o));
+    if(gClear.length)return close(gClear,lat,lon);
+    if(all.length)return close(all,lat,lon);
   }
-  if(!baseOb){
-    const clear=bestBatch.filter(o=>!obs2(o));
-    if(clear.length)return close(clear,lat,lon);
-    logf&&logf('    all results obscured, searching for unobscured…');
-    const searchR=hi||r;
-    for(let mult=2;mult<=64;mult*=2){
-      const r2=Math.min(searchR*mult,RMAX);
-      const c2=await cands(tid,xid,lat,lon,r2);
-      logf&&logf('    radius '+(r2<10?r2.toFixed(1):Math.round(r2))+' km → '+c2.length);
-      const clear2=c2.filter(o=>!obs2(o));
-      if(clear2.length)return close(clear2,lat,lon);
-      if(r2>=RMAX)break;
-    }
-    logf&&logf('    no unobscured found, using obscured result');
-    return close(bestBatch,lat,lon);
+
+  return null;
+}
+
+
+function close(cs,lat,lon){
+  let best=null,bd=Infinity;
+  for(const o of cs){
+    const loc=o.private_location||o.location;
+    const[a,b]=loc.split(',').map(Number);
+    const d=hav(lat,lon,a,b);
+    if(d<bd){bd=d;best=o;}
   }
-  return close(bestBatch,lat,lon);
+  return best?{obs:best,distKm:bd,trueCoords:!!best.private_location}:null;
 }
 
 function close(cs,lat,lon){
   let best=null,bd=Infinity;
-  for(const o of cs){const[a,b]=o.location.split(',').map(Number);const d=hav(lat,lon,a,b);if(d<bd){bd=d;best=o;}}
-  return best?{obs:best,distKm:bd}:null;
+  for(const o of cs){
+    const loc=o.private_location||o.location;
+    const[a,b]=loc.split(',').map(Number);
+    const d=hav(lat,lon,a,b);
+    if(d<bd){bd=d;best=o;}
+  }
+  return best?{obs:best,distKm:bd,trueCoords:!!best.private_location}:null;
 }
 
-function showBase(obs,lat,lon,ob){
-  const el=document.getElementById('base');
+function showSource(obs,lat,lon,ob,trueCoords){
+  const el=document.getElementById('srccard');
   el.style.display='block';
-  el.innerHTML=
-    '<div class="blabel">Base &middot; #'+obs.id+'</div>'+
-    '<div class="bname">'+obs.taxon.name+'</div>'+
-    (obs.taxon.preferred_common_name?'<div class="bcommon">'+obs.taxon.preferred_common_name+'</div>':'')+
-    '<div class="bmeta">&#128205; '+(obs.place_guess||lat.toFixed(4)+','+lon.toFixed(4))+'<br>'+(obs.observed_on||'\u2014')+' &middot; '+obs.taxon.rank+'</div>'+
-    (ob?'<div class="warn">&#9888; Base observation obscured &mdash; true coords offset up to '+OBS_KM+' km. Distances shown as ranges.</div>':'');
+  const user=obs.user?.login||'';
+  const isOwn=!!(window.inatUser&&user===window.inatUser);
+  const userSpan=user?' · <span style="color:'+(isOwn?'#74c69d':'var(--g4)')+'">@'+user+(isOwn?' ★':'')+' </span>':'';
+  const warnDiv=ob&&!trueCoords?'<div class="warn">&#9888; Source observation obscured — true coords offset up to '+OBS_KM+' km. Distances shown as ranges.</div>':'';
+  el.innerHTML='<div class="source-label">Source · #'+obs.id+' <a href="https://www.inaturalist.org/observations/'+obs.id+'" target="_blank" style="font-size:11px;color:var(--g3);text-decoration:none;border:1px solid var(--g2);border-radius:4px;padding:1px 7px;font-family:var(--mono)">View →</a></div>'+'<div class="source-name">'+obs.taxon.name+'</div>'+(obs.taxon.preferred_common_name?'<div class="source-common">'+obs.taxon.preferred_common_name+'</div>':'')+'<div class="source-meta">&#128205; '+(obs.place_guess||lat.toFixed(4)+','+lon.toFixed(4))+'<br>'+(obs.observed_on||'—')+' · '+obs.taxon.rank+userSpan+'</div>'+warnDiv;
 }
 
 function renderRow(rank,rt,result,maxHi,baseOb){
@@ -257,7 +315,7 @@ function renderRow(rank,rt,result,maxHi,baseOb){
   const pH=Math.min(100,d.hi/maxHi*100);
   const pL=Math.min(100,d.lo/maxHi*100);
   let flags='';
-  if(baseOb) flags+='<span class="flag fb" title="Base coords obscured (\xb1'+OBS_KM+'km)">base &#9888;</span>';
+  if(baseOb) flags+='<span class="flag fb" title="Base coords obscured (\xb1'+OBS_KM+'km)">source &#9888;</span>';
   if(ro)     flags+='<span class="flag fr" title="Result coords obscured (\xb1'+OBS_KM+'km)">result &#9888;</span>';
   const dl=d.e
     ?'<div style="font-size:11px;color:#e07b00;margin-top:4px;font-family:\'Courier New\',monospace">distance: '+rng(d)+(flags?' &nbsp;'+flags:'')+'</div>'
@@ -278,7 +336,7 @@ function renderRow(rank,rt,result,maxHi,baseOb){
       '<div style="font-size:10px;color:#888;font-family:\'Courier New\',monospace;text-transform:uppercase;letter-spacing:.8px;margin-bottom:3px">nearest obs</div>'+
       '<div class="iname" style="font-size:13px">'+(obs.taxon?obs.taxon.name:'Unknown')+'</div>'+
       (obs.taxon&&obs.taxon.preferred_common_name?'<div class="icommon">'+obs.taxon.preferred_common_name+'</div>':'')+
-      '<div class="imeta">&#128205; '+(obs.place_guess||'Unknown')+'<br>'+(obs.observed_on||'\u2014')+'</div>'+
+      '<div class="imeta">&#128205; '+(obs.place_guess||'Unknown')+'<br>'+(obs.observed_on||'\u2014')+(obs.user?.login?' · <span style="color:'+(window.inatUser&&obs.user.login===window.inatUser?'#74c69d':'#888')+'">@'+obs.user.login+(window.inatUser&&obs.user.login===window.inatUser?' ★':'')+' </span>':'')+' </div>'+
       dl+
       '<div class="barbg">'+
         '<div class="bar" style="width:'+pH+'%;background:'+color+';opacity:.25"></div>'+
@@ -291,6 +349,8 @@ function renderRow(rank,rt,result,maxHi,baseOb){
 
 async function go(){
   if(busy)return;
+  const tok=document.getElementById('api-token').value.trim();
+  if(tok){const ok=await testToken();if(!ok)return;}
   const raw=document.getElementById('inp').value.trim();
   const m=raw.match(/(\d+)\s*$/);
   if(!m){err('Enter a valid observation ID or iNaturalist URL.');return;}
@@ -306,14 +366,14 @@ async function go(){
   document.getElementById('results').innerHTML='';
   document.getElementById('rlabel').style.display='none';
   document.getElementById('foot').style.display='none';
-  document.getElementById('base').style.display='none';
+  document.getElementById('srccard').style.display='none';
   err('');
 
   try{
     lg('Fetching observation '+id+'\u2026');
-    const{obs,lat,lon,ob}=await getObs(id);
+    const{obs,lat,lon,ob,trueCoords}=await getObs(id);
     lg((ob?'[obscured] ':'')+obs.taxon.name+' \u00b7 '+(obs.place_guess||lat.toFixed(4)+','+lon.toFixed(4)));
-    showBase(obs,lat,lon,ob);
+    showSource(obs,lat,lon,ob,trueCoords);
 
     lg('Fetching taxonomy\u2026');
     const tax=await getTax(obs.taxon.id);
@@ -334,10 +394,12 @@ async function go(){
     for(const t of chain){
       lg('Searching '+t.rank+' ('+t.name+')…');
       try{
-        const cnt=await countWithin28(t.id,obs.id,lat,lon,thresh);
-        if(cnt>0)lg('  ℹ '+cnt+' obs within '+thresh+' km (uncertainty zone)');
         const res=await nearest(t.id,obs.id,lat,lon,lg,nr,ob);
-        if(res){found[t.rank]={...res,rankTaxon:t};lg('  ✓ '+(res.distKm<1?(res.distKm*1000).toFixed(0)+' m':res.distKm.toFixed(3)+' km')+' — '+(res.obs.taxon?res.obs.taxon.name:'?'));nr=r1sf(res.distKm);}
+        if(res){
+          found[t.rank]={...res,rankTaxon:t};
+          lg('  ✓ '+(res.distKm<1?(res.distKm*1000).toFixed(0)+' m':res.distKm.toFixed(3)+' km')+' — '+(res.obs.taxon?res.obs.taxon.name:'?'));
+          nr=obs2(res.obs)?thresh:r1sf(res.distKm);
+        }
         else lg('  – no results');
       }catch(e){lg('  – error: '+e.message);}
     }
@@ -347,7 +409,7 @@ async function go(){
 
     const maxHi=Math.max(...ranks.map(r=>dist(found[r].distKm,ob,obs2(found[r].obs)).hi),1);
     const con=document.getElementById('results');
-    for(const r of ranks)con.appendChild(renderRow(r,found[r].rankTaxon,found[r],maxHi,ob));
+    for(const r of ranks)con.appendChild(renderRow(r,found[r].rankTaxon,found[r],maxHi,ob,trueCoords));
     document.getElementById('rlabel').style.display='block';
     document.getElementById('foot').style.display='block';
 
@@ -355,6 +417,15 @@ async function go(){
   finally{busy=false;btn.disabled=false;btn.textContent='Search';}
 }
 
+function clearToken(){
+  document.getElementById('api-token').value='';
+  document.getElementById('clear-token-btn').style.display='none';
+  document.getElementById('token-status').textContent='';
+  window.inatUser=null;
+}
+function onTokenInput(){
+  document.getElementById('clear-token-btn').style.display=document.getElementById('api-token').value?'block':'none';
+}
 function clearInput(){
   document.getElementById('inp').value='';
   document.getElementById('clear-btn').style.display='none';
@@ -362,6 +433,25 @@ function clearInput(){
 }
 function onInput(){
   document.getElementById('clear-btn').style.display=document.getElementById('inp').value?'block':'none';
+}
+async function testToken(){
+  const tok=document.getElementById('api-token').value.trim();
+  const el=document.getElementById('token-status');
+  if(!tok){el.style.color='#ffb4b4';el.textContent='No token entered.';return false;}
+  el.style.color='var(--g4)';el.textContent='Testing…';
+  try{
+    const r=await fetch('https://api.inaturalist.org/v1/users/me',{headers:{'Authorization':tok}});
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    const d=await r.json();
+    window.inatUser=d.results?.[0]?.login||null;
+    el.style.color='#74c69d';
+    el.textContent='✓ '+(window.inatUser||'authenticated');
+    return true;
+  }catch(e){
+    el.style.color='#ffb4b4';
+    el.textContent='✗ Invalid: '+e.message;
+    return false;
+  }
 }
 document.getElementById('inp').addEventListener('keydown',e=>{if(e.key==='Enter')go();});
 </script>
